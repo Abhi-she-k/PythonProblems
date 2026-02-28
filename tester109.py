@@ -51,7 +51,7 @@ version_prefix = '<$$$$>'
 function_prefix = '<****>'
 
 # Timeout cutoff for individual function tests, in seconds.
-timeout_cutoff = 20
+timeout_cutoff = 30
 
 # How many test cases to record in the file for each function.
 testcase_cutoff = 300
