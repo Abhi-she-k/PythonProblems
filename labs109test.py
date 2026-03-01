@@ -141,7 +141,7 @@ def bandwidth(edges):
         numbering = [-1] * n  # numbering[node] = assigned number
         used = [False] * n  # used[number] = whether number is used
         
-        node_allowed_bandwidth = [(0, limit) for node in range(n)]
+        node_allowed_bandwidth = [(0, n-1) for node in range(n)]
 
         def backtrack(node_idx):
             """Try to assign numbers to nodes"""
@@ -160,7 +160,7 @@ def bandwidth(edges):
             node = -1
             maxEdge = float("-inf")
 
-            for i in range(node_allowed_bandwidth[node][0], node_allowed_bandwidth[node][1] + 1):
+            for i in range(n):
 
                 if numbering[i] == -1:
 
@@ -175,7 +175,7 @@ def bandwidth(edges):
                         node = i
 
             # Try each available number
-            for num in range(n):
+            for num in range(node_allowed_bandwidth[node][0], node_allowed_bandwidth[node][1] + 1):
                 if used[num]:
                     continue
 
@@ -198,7 +198,10 @@ def bandwidth(edges):
 
                 changes = []
                 
-                #update the allowed bandwidth for the neighbors of the current node
+                # FIX 2: We can have a allowed range of numbers for each node after we select a node to be place we update the neibourse allowed ranges so that they can still be assigned a valid number.
+                # If this interval becomes empty, as the ranges of high and low are not valid (high > low) then we can prune that branch. Addtionally using this new allowed range, we can only try these numbers
+                # for the current node we are assigning, greatly reducing the looping in this function. With this implementation, we are also storing our changes so that we can backtrack when we need to
+                # prune this branch. 
                 for neighbor in edges[node]:
                     if numbering[neighbor] == -1:
 
@@ -240,7 +243,6 @@ def bandwidth(edges):
             return bw
 
     return n - 1
-
 
 # Stepping stones
 
