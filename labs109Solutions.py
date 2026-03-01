@@ -288,62 +288,60 @@ def stepping_stones(n, ones):
 
 
 
-# cut_corners
+# unity_partition
 
-def cut_corners(points):
-    n = len(points)
-    point_set = {p: i for i, p in enumerate(points)}
+def unity_partition(n):
+    from fractions import Fraction
     
-    # Find all corners: (x, y), (x, y+h), (x+h, y) for h > 0
-    corners = []
-    for i, (x, y) in enumerate(points):
-        # This point is the tip of a corner
-        # Look for all h > 0 such that (x, y+h) and (x+h, y) exist
-        for j, (x2, y2) in enumerate(points):
-            if x2 == x and y2 > y:
-                h = y2 - y
-                wing2 = (x + h, y)
-                if wing2 in point_set:
-                    k = point_set[wing2]
-                    corners.append((i, j, k))
-    
-    if not corners:
-        return 0
-    
-    # For each point, track which corners it belongs to
-    point_to_corners = {}
-    for ci, (i, j, k) in enumerate(corners):
-        for p in (i, j, k):
-            if p not in point_to_corners:
-                point_to_corners[p] = set()
-            point_to_corners[p].add(ci)
-    
-    removed = set()
-    best = [n]  # worst case
-    
-    def solve(depth):
-        # Find first corner with all three points intact
-        active_corner = None
-        for ci, (i, j, k) in enumerate(corners):
-            if i not in removed and j not in removed and k not in removed:
-                active_corner = ci
-                break
+    def backtrack(target_sum, target_frac, current_list, start):
+        # Base case: we've used up both the sum and the fraction
+        if target_sum == 0 and target_frac == 0:
+            return current_list[:]
         
-        if active_corner is None:
-            if depth < best[0]:
-                best[0] = depth
-            return
+        # Dead ends
+        if target_sum <= 0 or target_frac <= 0:
+            return None
         
-        if depth >= best[0] - 1:
-            return
+        # Try each possible next number
+        for num in range(start, target_sum):
+
+            reciprocal = Fraction(1, num)
+            
+            # Skip if reciprocal is too large
+            if reciprocal > target_frac:
+                continue
+
+            if target_sum - num < 0:
+                continue
+
+            # FIX 1: We are checking that in the best case if we take remaning recipriocal sums before we exceed our remaining budget for sum, 
+            # we can still reach our target fraction. If our max fraction is less that our target fraction we know in the best case, taking
+            # all the allowed remaining numbers, we won't reach our target fraction and this path will not lead to a solution.
+            remaining_sum = target_sum - num
+            temp = num+1
+            max_fraction = 0 
+
+            while True:
+                if(remaining_sum - temp < 0):
+                    break
+                else:
+                    remaining_sum -= temp
+                    max_fraction += 1 / temp
+                    temp += 1
+
+            if(max_fraction < target_frac - reciprocal):
+                continue
+
+            # Try adding this number
+            current_list.append(num)
+            result = backtrack(target_sum - num, target_frac - reciprocal, current_list, num + 1)
+            
+            if result is not None:
+                return result
+            
+            current_list.pop()
         
-        i, j, k = corners[active_corner]
-        
-        # Try removing each of the three points
-        for p in (i, j, k):
-            removed.add(p)
-            solve(depth + 1)
-            removed.remove(p)
+        return None
     
-    solve(0)
-    return best[0]
+    result = backtrack(n, Fraction(1, 1), [], 2)
+    return result if result else []
