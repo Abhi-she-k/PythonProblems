@@ -17,6 +17,7 @@ def ryerson_letter_grade(n):
         adjust = ""
     return "DCB"[tens - 5] + adjust
 
+
 # Reverse the Rule 110
 
 def reverse_110(current):
@@ -66,19 +67,19 @@ def reverse_110(current):
                 check_pos = pos - 1
                 center = prev[check_pos]
 
-                # FIX 2: We don't need to use modulo n here since pos < n when we are checking and
-                # The script ends when pos == n. So we don't need to wrap around the previous list object.
+                # FIX 2: We don't need to use modulo n here since we are checking neighbors that are already filled. Since
+                # check_pos = pos - 1, check_pos - 1 = pos - 2 and check_pos + 1 = pos, all of these positions are already filled, 
+                # we do not need to worry about wrapping around the list. 
                 left = prev[check_pos - 1]
                 # FIX 1: Here check_pos + 1 with never be < pos since check_pos = pos - 1 and
                 # check_pos + 1 = pos. Therefore, this condition is always false, and right is
                 # always none, therefore, we never check rule_110 and never prune invalid branches.
                 right = prev[check_pos + 1]
 
-                if right is not None:
-                    expected = rule_110[(left, center, right)]
-                    if expected != current[check_pos]:
-                        prev.pop()
-                        continue
+                expected = rule_110[(left, center, right)]
+                if expected != current[check_pos]:
+                    prev.pop()
+                    continue
 
             result = backtrack(prev, pos + 1)
             if result is not None:
@@ -92,7 +93,6 @@ def reverse_110(current):
 
 
 # Post Correspondence Problem
-
 
 def post_correspondence_problem(first, second, lo, hi):
 
@@ -116,14 +116,10 @@ def post_correspondence_problem(first, second, lo, hi):
             # no matter if the addition of elements from the first and second lists would make the strings never be compatible.
             # If we check if the new first string or the new second string is in the prefix of the other, we know these strings
             # still have a chance at being equivalent later in the recursion. If not, then they have no chance.
-            if (
-                new_second[0 : len(new_first)] == new_first
-                or new_first[0 : len(new_second)] == new_second
-            ):
+            if (new_second.startswith(new_first) or new_first.startswith(new_second)):
                 if backtrack(new_first, new_second):
                     return True
             else:
-
                 continue
 
         return False
@@ -140,6 +136,8 @@ def bandwidth(edges):
         """Try to find a numbering with given bandwidth limit"""
         numbering = [-1] * n  # numbering[node] = assigned number
         used = [False] * n  # used[number] = whether number is used
+        
+        node_allowed_bandwidth = [(0, n-1) for node in range(n)]
 
         def backtrack(node_idx):
             """Try to assign numbers to nodes"""
@@ -173,29 +171,63 @@ def bandwidth(edges):
                         node = i
 
             # Try each available number
-            for num in range(n):
+            for num in range(node_allowed_bandwidth[node][0], node_allowed_bandwidth[node][1] + 1):
                 if used[num]:
                     continue
 
                 # Check if this number violates bandwidth constraint
                 valid = True
+                
                 for neighbor in edges[node]:
                     if numbering[neighbor] != -1:
                         if abs(num - numbering[neighbor]) > limit:
                             valid = False
                             break
+                if not valid:
+                    continue
+
+                valid = True
+
+                # Assign this number
+                numbering[node] = num
+                used[num] = True
+
+                changes = []
+                
+                # FIX 2: We can have a allowed range of numbers for each node after we select a node to be place we update the neibourse allowed ranges so that they can still be assigned a valid number.
+                # If this interval becomes empty, as the ranges of high and low are not valid (high > low) then we can prune that branch. Addtionally using this new allowed range, we can only try these numbers
+                # for the current node we are assigning, greatly reducing the looping in this function. With this implementation, we are also storing our changes so that we can backtrack when we need to
+                # prune this branch. 
+                for neighbor in edges[node]:
+                    if numbering[neighbor] == -1:
+
+                        high_limit = num + limit
+                        low_limit = num - limit
+
+                        old_limit = node_allowed_bandwidth[neighbor]
+                        
+                        node_allowed_bandwidth[neighbor] = (max(node_allowed_bandwidth[neighbor][0], low_limit), min(node_allowed_bandwidth[neighbor][1], high_limit))
+
+                        if(old_limit != node_allowed_bandwidth[neighbor]):
+                            changes.append((neighbor, old_limit))
+                        
+                        if node_allowed_bandwidth[neighbor][0] > node_allowed_bandwidth[neighbor][1]:
+                            valid = False
+                            break
+
 
                 if valid:
-                    # Assign this number
-                    numbering[node] = num
-                    used[num] = True
-
+                    
                     if backtrack(node_idx + 1):
                         return True
 
-                    # Backtrack
-                    numbering[node] = -1
-                    used[num] = False
+                # Backtrack
+                numbering[node] = -1
+                used[num] = False
+
+                # Revert the changes to the allowed bandwidth for the neighbors
+                for neighbor, old_limit in changes:
+                    node_allowed_bandwidth[neighbor] = old_limit
 
             return False
 
@@ -285,7 +317,6 @@ def stepping_stones(n, ones):
         return best
 
     return backtrack(2)
-
 
 
 # unity_partition
