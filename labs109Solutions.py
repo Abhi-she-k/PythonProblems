@@ -260,18 +260,27 @@ def stepping_stones(n, ones):
                     neighbors.append((nr, nc))
         return neighbors
 
+    # FIX 2: Precompute all neighbouurs for the all of the cells and store in a dictionary, this way we are not
+    # recomputing the neighbors in the branching and recursive calls. This is more efficient because getting the neighbors
+    # is O(n^2) normally and repeating this for computed cells is a waste. Therefore, by precomputing we can turn it into 
+    # a constant time operation.
+    neighbor_dict = {}
+
+    for r in range(n):
+        for c in range(n):
+            neighbor_dict[(r, c)] = get_neighbors(r, c)
 
     # Apart of FIX 1: Where we build the original possible placements set. 
     for pos in ones:
         board[pos] = 1
-        for neighbor in get_neighbors(pos[0], pos[1]):
+        for neighbor in neighbor_dict[pos]:
             if neighbor not in board:
                 possiblePlacements.add(neighbor)
 
     def get_sum(r, c):
         """Get sum of neighboring stones"""
         total = 0
-        for neighbor in get_neighbors(r, c):
+        for neighbor in neighbor_dict[(r, c)]:
             if neighbor in board:
                 total += board[neighbor]
         return total
@@ -297,7 +306,7 @@ def stepping_stones(n, ones):
                 possiblePlacements.remove((r, c))
 
                 added_neighbors = []
-                for neighbor in get_neighbors(r, c):
+                for neighbor in neighbor_dict[(r, c)]:
                     if neighbor not in board and neighbor not in possiblePlacements:
                         possiblePlacements.add(neighbor)
                         added_neighbors.append(neighbor)
